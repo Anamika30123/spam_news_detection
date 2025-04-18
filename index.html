@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spam News Detector</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <style>
+        body {
+            padding-top: 2rem;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+        }
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .real-news {
+            background-color: rgba(40, 167, 69, 0.2);
+            border: 1px solid #28a745;
+        }
+        .fake-news {
+            background-color: rgba(220, 53, 69, 0.2);
+            border: 1px solid #dc3545;
+        }
+        .confidence-bar {
+            height: 20px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .loader {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">Spam News Detector</h1>
+        <div class="card">
+            <div class="card-header">
+                <h5>Enter News Text to Analyze</h5>
+            </div>
+            <div class="card-body">
+                <form id="newsForm">
+                    <div class="mb-3">
+                        <textarea class="form-control" id="newsText" rows="10" placeholder="Paste or type news content here..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Analyze</button>
+                </form>
+                
+                <div class="loader">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Analyzing text...</p>
+                </div>
+                
+                <div id="resultBox" class="result-box">
+                    <h4 id="resultTitle"></h4>
+                    <p id="resultText"></p>
+                    <p>Confidence: <span id="confidenceValue"></span>%</p>
+                    <div class="progress">
+                        <div id="confidenceBar" class="progress-bar confidence-bar" role="progressbar"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5>About This Project</h5>
+            </div>
+            <div class="card-body">
+                <p>This project uses machine learning to detect spam or fake news articles. The model was trained on a dataset of labeled news articles and uses natural language processing techniques to identify patterns associated with misinformation.</p>
+                <h6>Technologies Used:</h6>
+                <ul>
+                    <li>Python with scikit-learn for machine learning</li>
+                    <li>NLTK for natural language processing</li>
+                    <li>Flask for the backend API</li>
+                    <li>Bootstrap and JavaScript for the frontend</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('newsForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const newsText = document.getElementById('newsText').value.trim();
+            if (!newsText) {
+                alert('Please enter news text to analyze.');
+                return;
+            }
+            
+            // Show loader
+            document.querySelector('.loader').style.display = 'block';
+            document.getElementById('resultBox').style.display = 'none';
+            
+            // Make API request
+            fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ text: newsText }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loader
+                document.querySelector('.loader').style.display = 'none';
+                
+                // Show result
+                const resultBox = document.getElementById('resultBox');
+                resultBox.style.display = 'block';
+                
+                if (data.prediction === 'Real News') {
+                    resultBox.className = 'result-box real-news';
+                    document.getElementById('resultTitle').textContent = '✅ Real News Detected';
+                    document.getElementById('resultText').textContent = 'This article appears to be legitimate news content.';
+                } else {
+                    resultBox.className = 'result-box fake-news';
+                    document.getElementById('resultTitle').textContent = '⚠️ Fake News Detected';
+                    document.getElementById('resultText').textContent = 'This article shows patterns commonly associated with misinformation or fake news.';
+                }
+                
+                // Update confidence display
+                const confidence = Math.round(data.confidence * 100);
+                document.getElementById('confidenceValue').textContent = confidence;
+                
+                const confidenceBar = document.getElementById('confidenceBar');
+                confidenceBar.style.width = `${confidence}%`;
+                confidenceBar.className = `progress-bar ${data.prediction === 'Real News' ? 'bg-success' : 'bg-danger'}`;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.querySelector('.loader').style.display = 'none';
+                alert('An error occurred while analyzing the text. Please try again.');
+            });
+        });
+    </script>
+</body>
+</html>
